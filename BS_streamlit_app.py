@@ -154,7 +154,7 @@ def plot_heatmap(bs_model, spot_range, vol_range, strike):
     for i, vol in enumerate(vol_range):
         for j, spot in enumerate(spot_range):
             bs_temp = BlackScholes(
-                time_to_maturity=bs_model.time_to_maturity * 365, # Convert back to days if needed
+                time_to_maturity=bs_model.time_to_maturity
                 strike=strike,
                 current_price=spot,
                 volatility=vol,
