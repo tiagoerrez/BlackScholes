@@ -70,7 +70,7 @@ class BlackScholes:
         volatility: float,
         interest_rate: float,
     ):
-        self.time_to_maturity = time_to_maturity
+        self.time_to_maturity = time_to_maturity / 365.0 # Convert days to years
         self.strike = strike
         self.current_price = current_price
         self.volatility = volatility
@@ -131,7 +131,7 @@ with st.sidebar:
 
     current_price = st.number_input("Current Asset Price", value=100.0)
     strike = st.number_input("Strike Price", value=100.0)
-    time_to_maturity = st.number_input("Time to Maturity (Years)", value=1.0)
+    time_to_maturity = st.number_input("Time to Maturity (Days)", value=45, min_value=1)
     volatility = st.number_input("Volatility (σ)", value=0.2)
     interest_rate = st.number_input("Risk-Free Interest Rate", value=0.05)
 
@@ -154,7 +154,7 @@ def plot_heatmap(bs_model, spot_range, vol_range, strike):
     for i, vol in enumerate(vol_range):
         for j, spot in enumerate(spot_range):
             bs_temp = BlackScholes(
-                time_to_maturity=bs_model.time_to_maturity,
+                time_to_maturity=bs_model.time_to_maturity * 365, # Convert back to days if needed
                 strike=strike,
                 current_price=spot,
                 volatility=vol,
@@ -188,7 +188,7 @@ st.title("Black-Scholes Pricing Model")
 input_data = {
     "Current Asset Price": [current_price],
     "Strike Price": [strike],
-    "Time to Maturity (Years)": [time_to_maturity],
+    "Time to Maturity (Days)": [time_to_maturity], # Display in days
     "Volatility (σ)": [volatility],
     "Risk-Free Interest Rate": [interest_rate],
 }
