@@ -210,7 +210,7 @@ with col1:
                 <div class="metric-label">CALL Value</div>
                 <div class="metric-value">${call_price:.3f}</div>
                 <div class="metric-label">CALL Delta</div>
-                <div class="metric-value">${call_delta:.3f}</div>
+                <div class="metric-value">{call_delta:.3f}</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -223,7 +223,7 @@ with col2:
                 <div class="metric-label">PUT Value</div>
                 <div class="metric-value">${put_price:.3f}</div>
                 <div class="metric-label">PUT Delta</div>
-                <div class="metric-value">${put_delta:.3f}</div>
+                <div class="metric-value">{put_delta:.3f}</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
