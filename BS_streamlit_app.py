@@ -107,6 +107,8 @@ class BlackScholes:
         # Delta
         self.call_delta = norm.cdf(d1)
         self.put_delta = 1 - norm.cdf(d1)
+        call_delta = self.call_delta 
+        put_delta = self.put_delta
 
         # Gamma
         self.call_gamma = norm.pdf(d1) / (
@@ -114,7 +116,7 @@ class BlackScholes:
         )
         self.put_gamma = self.call_gamma
 
-        return call_price, put_price
+        return call_price, put_price, call_delta, put_delta
 
 # Function to generate heatmaps
 # ... your existing imports and BlackScholes class definition ...
@@ -123,9 +125,9 @@ class BlackScholes:
 # Sidebar for User Inputs
 with st.sidebar:
     st.title("📊 Black-Scholes Model")
-    st.write("`Created by:`")
-    linkedin_url = "https://www.linkedin.com/in/mprudhvi/"
-    st.markdown(f'<a href="{linkedin_url}" target="_blank" style="text-decoration: none; color: inherit;"><img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="25" height="25" style="vertical-align: middle; margin-right: 10px;">`Prudhvi Reddy, Muppala`</a>', unsafe_allow_html=True)
+    # st.write("`Created by:`")
+    # linkedin_url = "https://www.linkedin.com/in/mprudhvi/"
+    # st.markdown(f'<a href="{linkedin_url}" target="_blank" style="text-decoration: none; color: inherit;"><img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="25" height="25" style="vertical-align: middle; margin-right: 10px;">`Prudhvi Reddy, Muppala`</a>', unsafe_allow_html=True)
 
     current_price = st.number_input("Current Asset Price", value=100.0)
     strike = st.number_input("Strike Price", value=100.0)
@@ -195,10 +197,10 @@ st.table(input_df)
 
 # Calculate Call and Put values
 bs_model = BlackScholes(time_to_maturity, strike, current_price, volatility, interest_rate)
-call_price, put_price = bs_model.calculate_prices()
+call_price, put_price, call_delta, put_delta = bs_model.calculate_prices()
 
 # Display Call and Put Values in colored tables
-col1, col2 = st.columns([1,1], gap="small")
+col1, col2, col3 = st.columns([1,1], gap="small")
 
 with col1:
     # Using the custom class for CALL value
@@ -206,7 +208,7 @@ with col1:
         <div class="metric-container metric-call">
             <div>
                 <div class="metric-label">CALL Value</div>
-                <div class="metric-value">${call_price:.2f}</div>
+                <div class="metric-value">${call_price:.3f}</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -217,7 +219,18 @@ with col2:
         <div class="metric-container metric-put">
             <div>
                 <div class="metric-label">PUT Value</div>
-                <div class="metric-value">${put_price:.2f}</div>
+                <div class="metric-value">${put_price:.3f}</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    # Using the custom class for Call Delta
+    st.makrdown(f"""
+        <  div class="metric-container metric-call">
+            <div>
+                <div class="metric-label">CALL Delta</div>
+                <div class="metric-value">${call_delta:.3f}</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
