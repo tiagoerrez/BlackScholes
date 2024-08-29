@@ -200,7 +200,7 @@ bs_model = BlackScholes(time_to_maturity, strike, current_price, volatility, int
 call_price, put_price, call_delta, put_delta = bs_model.calculate_prices()
 
 # Display Call and Put Values in colored tables
-col1, col2, col3 = st.columns([2,2], gap="small")
+col1, col2, col3 = st.columns([1,1,1], gap="small")
 
 with col1:
     # Using the custom class for CALL value
@@ -226,7 +226,7 @@ with col2:
 
 with col3:
     # Using the custom class for Call Delta
-    st.makrdown(f"""
+    st.markdown(f"""
         <  div class="metric-container metric-call">
             <div>
                 <div class="metric-label">CALL Delta</div>
