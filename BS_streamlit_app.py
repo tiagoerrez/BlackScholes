@@ -137,10 +137,10 @@ with st.sidebar:
 
     st.markdown("---")
     calculate_btn = st.button('Heatmap Parameters')
-    spot_min = st.number_input('Min Spot Price', min_value=0.01, value=current_price*0.8, step=0.001)
-    spot_max = st.number_input('Max Spot Price', min_value=0.01, value=current_price*1.2, step=0.001)
-    vol_min = st.slider('Min Volatility for Heatmap', min_value=0.01, max_value=1.0, value=volatility*0.5, step=0.005)
-    vol_max = st.slider('Max Volatility for Heatmap', min_value=0.01, max_value=1.0, value=volatility*1.5, step=0.005)
+    spot_min = st.number_input('Min Spot Price', min_value=0.01, value=current_price*0.8, step=0.0001)
+    spot_max = st.number_input('Max Spot Price', min_value=0.01, value=current_price*1.2, step=0.0001)
+    vol_min = st.slider('Min Volatility for Heatmap', min_value=0.01, max_value=1.0, value=volatility*0.5, step=0.0005)
+    vol_max = st.slider('Max Volatility for Heatmap', min_value=0.01, max_value=1.0, value=volatility*1.5, step=0.0005)
     
     spot_range = np.linspace(spot_min, spot_max, 10)
     vol_range = np.linspace(vol_min, vol_max, 10)
@@ -166,14 +166,14 @@ def plot_heatmap(bs_model, spot_range, vol_range, strike):
     
     # Plotting Call Price Heatmap
     fig_call, ax_call = plt.subplots(figsize=(10, 8))
-    sns.heatmap(call_prices, xticklabels=np.round(spot_range, 3), yticklabels=np.round(vol_range, 3), annot=True, fmt=".3f", cmap="viridis", ax=ax_call)
+    sns.heatmap(call_prices, xticklabels=np.round(spot_range, 4), yticklabels=np.round(vol_range, 4), annot=True, fmt=".4f", cmap="viridis", ax=ax_call)
     ax_call.set_title('CALL')
     ax_call.set_xlabel('Spot Price')
     ax_call.set_ylabel('Volatility')
     
     # Plotting Put Price Heatmap
     fig_put, ax_put = plt.subplots(figsize=(10, 8))
-    sns.heatmap(put_prices, xticklabels=np.round(spot_range, 3), yticklabels=np.round(vol_range, 3), annot=True, fmt=".3f", cmap="viridis", ax=ax_put)
+    sns.heatmap(put_prices, xticklabels=np.round(spot_range, 4), yticklabels=np.round(vol_range, 4), annot=True, fmt=".4f", cmap="viridis", ax=ax_put)
     ax_put.set_title('PUT')
     ax_put.set_xlabel('Spot Price')
     ax_put.set_ylabel('Volatility')
@@ -208,9 +208,9 @@ with col1:
         <div class="metric-container metric-call">
             <div>
                 <div class="metric-label">CALL Value</div>
-                <div class="metric-value">${call_price:.3f}</div>
+                <div class="metric-value">${call_price:.4f}</div>
                 <div class="metric-label">CALL Delta</div>
-                <div class="metric-value">{call_delta:.3f}</div>
+                <div class="metric-value">{call_delta:.4f}</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -221,9 +221,9 @@ with col2:
         <div class="metric-container metric-put">
             <div>
                 <div class="metric-label">PUT Value</div>
-                <div class="metric-value">${put_price:.3f}</div>
+                <div class="metric-value">${put_price:.4f}</div>
                 <div class="metric-label">PUT Delta</div>
-                <div class="metric-value">{put_delta:.3f}</div>
+                <div class="metric-value">{put_delta:.4f}</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
