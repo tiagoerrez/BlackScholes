@@ -162,7 +162,7 @@ with st.sidebar:
         min_value=100.0,
         help="Enter your total account size for position sizing calculations"
     )
-    
+
     max_premium_allocation = vix_dynamic_allocation(balance=account_size)
 
     try:
@@ -197,11 +197,13 @@ with st.sidebar:
     else:
         max_contracts = 0
         
+    # Simple position sizing input
     position_units = st.number_input(
         "Number of Contracts/Units",
-        value=min(max(1, max_contracts), 100),  # Default to Kelly suggestion, minimum 1, maximum 100
+        value=1,
         min_value=1,
-        help="Enter the number of option contracts you want to analyze. The suggested number is based on Kelly Criterion and VIX-based allocation."
+        max_value=1000,
+        help="Enter the number of option contracts to analyze"
     )
 
     # visualization type selector
