@@ -313,7 +313,8 @@ input_data = {
     "Time to Maturity (Days)": [time_to_maturity], # Display in days
     "Volatility (σ)": [volatility],
     "Risk-Free Interest Rate": [interest_rate],
-    "Position Size (Units)": [position_units],
+    "Contracts (Units)": [position_units],
+    "Position Size" : {kelly_allocation}
 }
 
 input_df = pd.DataFrame(input_data)
