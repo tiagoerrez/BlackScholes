@@ -229,7 +229,27 @@ with st.sidebar:
 
 def plot_heatmap(bs_model, spot_range, vol_range, strike, position_units, viz_type):
     """
-    Generate heatmaps for either option prices or P&L analysis
+    Generate heatmaps for either option prices or P&L analysis with corrected volatility implementation
+    
+    Parameters:
+    -----------
+    bs_model : BlackScholes
+        Instance of BlackScholes class containing initial parameters
+    spot_range : numpy.ndarray
+        Array of spot prices to analyze
+    vol_range : numpy.ndarray
+        Array of volatility values to analyze
+    strike : float
+        Strike price of the option
+    position_units : int
+        Number of contracts/units
+    viz_type : str
+        Type of visualization ('Option Prices' or 'Position P&L')
+        
+    Returns:
+    --------
+    tuple
+        Two matplotlib figures for call and put options
     """
     call_matrix = np.zeros((len(vol_range), len(spot_range)))
     put_matrix = np.zeros((len(vol_range), len(spot_range)))
@@ -244,22 +264,22 @@ def plot_heatmap(bs_model, spot_range, vol_range, strike, position_units, viz_ty
     )
     initial_call, initial_put = initial_bs.calculate_prices()[:2]
 
- # Calculate matrices for both options
+    # Calculate matrices for both options, using volatility from vol_range
     for i, vol in enumerate(vol_range):
         for j, spot in enumerate(spot_range):
             bs_temp = BlackScholes(
                 time_to_maturity=bs_model.time_to_maturity,
                 strike=strike,
                 current_price=spot,
-                volatility=vol,
+                volatility=vol,  # Use the volatility from vol_range
                 interest_rate=bs_model.interest_rate
             )
             call_price, put_price = bs_temp.calculate_prices()[:2]
             
             if viz_type == "Position P&L":
                 # Calculate P&L for both options
-                call_matrix[i, j] = (call_price - initial_call) * position_units
-                put_matrix[i, j] = (put_price - initial_put) * position_units
+                call_matrix[i, j] = (call_price - initial_call) * position_units * 100  # Multiply by 100 for contract size
+                put_matrix[i, j] = (put_price - initial_put) * position_units * 100
             else:
                 # Store raw prices
                 call_matrix[i, j] = call_price
@@ -268,17 +288,32 @@ def plot_heatmap(bs_model, spot_range, vol_range, strike, position_units, viz_ty
     # Create figures with appropriate formatting
     fmt = ".2f" if viz_type == "Position P&L" else ".4f"
     title_prefix = "P&L" if viz_type == "Position P&L" else "Price"
+    
+    # Use diverging colormap for P&L and sequential for prices
     cmap = "RdYlGn" if viz_type == "Position P&L" else "viridis"
+    
+    # Determine center for P&L colormap
+    if viz_type == "Position P&L":
+        vmax = max(abs(call_matrix.min()), abs(call_matrix.max()))
+        vmin = -vmax
+        center = 0
+    else:
+        vmin = None
+        vmax = None
+        center = None
     
     # Call option heatmap
     fig_call, ax_call = plt.subplots(figsize=(10, 8))
     sns.heatmap(
         call_matrix,
-        xticklabels=np.round(spot_range, 4),
-        yticklabels=np.round(vol_range, 4),
+        xticklabels=np.round(spot_range, 2),
+        yticklabels=np.round(vol_range, 3),
         annot=True,
         fmt=fmt,
         cmap=cmap,
+        center=center,
+        vmin=vmin,
+        vmax=vmax,
         ax=ax_call
     )
     ax_call.set_title(f'CALL {title_prefix} Analysis')
@@ -289,11 +324,14 @@ def plot_heatmap(bs_model, spot_range, vol_range, strike, position_units, viz_ty
     fig_put, ax_put = plt.subplots(figsize=(10, 8))
     sns.heatmap(
         put_matrix,
-        xticklabels=np.round(spot_range, 4),
-        yticklabels=np.round(vol_range, 4),
+        xticklabels=np.round(spot_range, 2),
+        yticklabels=np.round(vol_range, 3),
         annot=True,
         fmt=fmt,
         cmap=cmap,
+        center=center,
+        vmin=vmin,
+        vmax=vmax,
         ax=ax_put
     )
     ax_put.set_title(f'PUT {title_prefix} Analysis')
