@@ -182,7 +182,7 @@ with st.sidebar:
             f"({(max_premium_allocation/account_size)*100:.1f}% of account)")
 
     # Kelly Criterion inputs
-    col1 = st.columns(1)
+    col1 = st.columns(1)[0]
     with col1:
         prob_profit = st.slider(
             "Probability of Profit (%)",
