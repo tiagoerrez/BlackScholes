@@ -148,7 +148,7 @@ def vix_dynamic_allocation(balance=5000):
     else:
         allocation_value = balance * 0.5 # 50% MPA
 
-    print(f'The portfolio allocation percentage based on VIX ({current_vix}) is: {allocation_value}')
+    # print(f'The portfolio allocation percentage based on VIX ({current_vix}) is: {allocation_value}')
     return allocation_value
 
 def get_prices(tickers):
