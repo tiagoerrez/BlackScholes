@@ -314,7 +314,7 @@ input_data = {
     "Volatility (σ)": [volatility],
     "Risk-Free Interest Rate": [interest_rate],
     "Contracts (Units)": [position_units],
-    "Position Size" : {kelly_allocation}
+    "Position Size" : [kelly_allocation] # Display optimized position size
 }
 
 input_df = pd.DataFrame(input_data)
