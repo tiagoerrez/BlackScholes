@@ -162,14 +162,7 @@ with st.sidebar:
         min_value=100.0,
         help="Enter your total account size for position sizing calculations"
     )
-
-    position_units = st.number_input(
-        "Number of Contracts/Units",
-        value = 1,
-        min_value = 1,
-        help='Enter the number option contracts you want to analyze'
-    )
-
+    
     max_premium_allocation = vix_dynamic_allocation(balance=account_size)
 
     try:
