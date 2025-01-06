@@ -6,6 +6,11 @@ import plotly.graph_objects as go
 from numpy import log, sqrt, exp  # Make sure to import these
 import matplotlib.pyplot as plt
 import seaborn as sns
+import yahoo_fin.stock_info as si
+from equities_options_toolkit import (
+    vix_dynamic_allocation,
+    kelly_criterion_allocation
+)
 
 #######################
 # Page configuration
@@ -136,14 +141,74 @@ with st.sidebar:
     volatility = st.number_input("Volatility (σ)", value=0.2)
     interest_rate = st.number_input("Risk-Free Interest Rate", value=0.05)
 
+    # Calculate initial option prices
+    initial_bs = BlackScholes(
+        time_to_maturity=time_to_maturity,
+        strike=strike,
+        current_price=current_price,
+        volatility=volatility,
+        interest_rate=interest_rate
+    )
+    initial_call, initial_put = initial_bs.calculate_prices()[:2]
+
     # position sizing inputs
     st.markdown("---")
     st.subheader("Position Sizing")
+
+    # Account size input
+    account_size = st.number_input(
+        "Account Size ($)",
+        value=10000.0,
+        min_value=100.0,
+        help="Enter your total account size for position sizing calculations"
+    )
+
     position_units = st.number_input(
         "Number of Contracts/Units",
         value = 1,
         min_value = 1,
         help='Enter the number option contracts you want to analyze'
+    )
+
+    max_premium_allocation = vix_dynamic_allocation(balance=account_size)
+
+    try:
+        current_vix = si.get_live_price('^VIX').round(2)
+        st.info(f"Current VIX: {current_vix:.2f}")
+    except Exception as e:
+        st.warning("Unable to fetch current VIX level")
+    
+    st.info(f"Maximum premium allocation based on VIX: ${max_premium_allocation:.2f} "
+            f"({(max_premium_allocation/account_size)*100:.1f}% of account)")
+
+    # Kelly Criterion inputs
+    col1 = st.columns(1)
+    with col1:
+        prob_profit = st.slider(
+            "Probability of Profit (%)",
+            min_value=0,
+            max_value=100,
+            value=70,
+            help="Estimated probability of profit for the trade"
+        )
+
+    kelly_fraction = kelly_criterion_allocation(interest_rate, time_to_maturity, prob_profit)
+    kelly_allocation = min(kelly_fraction * account_size, max_premium_allocation)
+
+    st.info(f"Kelly Criterion suggested allocation: ${kelly_allocation:.2f} ({(kelly_allocation/account_size)*100:.1f}% of account)")
+
+    # Calculate recommended number of contracts based on current option price
+    current_option_value = min(initial_call, initial_put)  # Use the cheaper of call or put
+    if current_option_value > 0:
+        max_contracts = int(kelly_allocation / (current_option_value * 100))  # Multiply by 100 since each contract represents 100 shares
+    else:
+        max_contracts = 0
+        
+    position_units = st.number_input(
+        "Number of Contracts/Units",
+        value=min(max(1, max_contracts), 100),  # Default to Kelly suggestion, minimum 1, maximum 100
+        min_value=1,
+        help="Enter the number of option contracts you want to analyze. The suggested number is based on Kelly Criterion and VIX-based allocation."
     )
 
     # visualization type selector
