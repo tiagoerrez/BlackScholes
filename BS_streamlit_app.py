@@ -187,8 +187,8 @@ with st.sidebar:
         prob_profit = st.slider(
             "Probability of Profit (%)",
             min_value=0,
-            max_value=100,
-            value=70,
+            max_value=1,
+            value=0.7,
             help="Estimated probability of profit for the trade"
         )
 
