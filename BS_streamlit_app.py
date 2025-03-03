@@ -7,6 +7,7 @@ from numpy import log, sqrt, exp  # Make sure to import these
 import matplotlib.pyplot as plt
 import seaborn as sns
 import yahoo_fin.stock_info as si
+import yfinance as yf
 from equities_options_toolkit import (
     vix_dynamic_allocation,
     kelly_criterion_allocation
@@ -166,7 +167,8 @@ with st.sidebar:
     max_premium_allocation = vix_dynamic_allocation(balance=account_size)
 
     try:
-        current_vix = si.get_live_price('^VIX').round(2)
+        vix_ticker = yf.Ticker('^VIX')
+        current_vix = vix_ticker.history(period='1d', interval='1d')
         st.info(f"Current VIX: {current_vix:.2f}")
     except Exception as e:
         st.warning("Unable to fetch current VIX level")

@@ -5,6 +5,7 @@ import numpy as np
 import yahoo_fin.stock_info as si
 import matplotlib.pyplot as plt
 import seaborn as sns
+import yfinance as yf
 
 
 def get_options_chain(ticker, expiration):
@@ -132,23 +133,40 @@ def get_CPIVbyExpiration(tickers, expiration):
 
 def vix_dynamic_allocation(balance=5000):
     """
-    Dynamically determine what is the maximum amount of portfolio allocation to short premium strategies based on the VIX.
+    Dynamically determine the maximum portfolio allocation to short premium strategies based on the VIX.
+    
+    Parameters:
+    - balance (float): Portfolio balance (default=5000).
+    - fallback_vix (float): Fallback VIX value if fetching fails (default=20.0).
+    
+    Returns:
+    - float: Maximum allocation amount based on VIX.
     """
-    # Extract the current VIX from yahoo finance
-    current_vix = si.get_live_price('^VIX').round(2)
-
+    try:
+        # Fetch VIX data using history for the latest close (more reliable than info)
+        vix_ticker = yf.Ticker('^VIX')
+        vix_data = vix_ticker.history(period='1d', interval='1d')
+        if vix_data.empty:
+            raise ValueError("No VIX data returned")
+        current_vix = vix_data['Close'].iloc[-1].round(2)
+    except Exception as e:
+        print(f"Error fetching VIX with yfinance: {e}")
+        current_vix = 15  # Use fallback value
+    
+    # Define allocation tiers
     if current_vix < 15:
-        allocation_value = balance * 0.25 # 25% Maximum Portfolio Allocation (MPA)
+        allocation_percentage = 0.25  # 25% MPA
     elif 15 <= current_vix < 20:
-        allocation_value = balance * 0.3 # 30% MPA
+        allocation_percentage = 0.3   # 30% MPA
     elif 20 <= current_vix < 30:
-        allocation_value =  balance * 0.35 # 35% MPA
+        allocation_percentage = 0.35  # 35% MPA
     elif 30 <= current_vix < 40:
-        allocation_value =  balance * 0.4 # 40% MPA
+        allocation_percentage = 0.4   # 40% MPA
     else:
-        allocation_value = balance * 0.5 # 50% MPA
-
-    # print(f'The portfolio allocation percentage based on VIX ({current_vix}) is: {allocation_value}')
+        allocation_percentage = 0.5   # 50% MPA
+    
+    allocation_value = balance * allocation_percentage
+    print(f"VIX: {current_vix}, Allocation: {allocation_percentage*100}% of ${balance} = ${allocation_value:.2f}")
     return allocation_value
 
 def get_prices(tickers):
