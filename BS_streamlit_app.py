@@ -168,7 +168,8 @@ with st.sidebar:
 
     try:
         vix_ticker = yf.Ticker('^VIX')
-        current_vix = vix_ticker.history(period='1d', interval='1d')
+        data_vix = vix_ticker.history(period='1d', interval='1d')
+        current_vix = data_vix['Close'].iloc[-1].round(2)
         st.info(f"Current VIX: {current_vix:.2f}")
     except Exception as e:
         st.warning("Unable to fetch current VIX level")
