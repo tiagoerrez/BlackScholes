@@ -1,52 +1,42 @@
 # import modules
-from yahoo_fin import options as op
+import yfinance as yf
 import pandas as pd
 import numpy as np
-import yahoo_fin.stock_info as si
 import matplotlib.pyplot as plt
 import seaborn as sns
-import yfinance as yf
 
 
 def get_options_chain(ticker, expiration):
     """
     Get the current options chain based on a ticker and expiration date
     """
-    chainData = op.get_options_chain(ticker, date=expiration)
-    for key in chainData:
-        chainData[key]['Implied Volatility'] = chainData[key]['Implied Volatility'].str.replace('%', '').astype(float)/100
+    ticker_obj = yf.Ticker(ticker)
+    option_chain = ticker_obj.option_chain(expiration) # Returns tuple (calls, puts)
 
-    for key in chainData:
-        chainData[key]['Volume'] = chainData[key]['Volume'].replace({'-': 0, ',':''}, regex=True).astype(int)
-        chainData[key]['Open Interest'] = chainData[key]['Open Interest'].replace({'-': 0, ',':''}, regex=True).astype(float)
+    # process calls and puts
+    calls = option_chain.calls
+    puts = option_chain.puts
 
-    for key in chainData:
-        chainData[key].sort_values(by='Strike', inplace=True)
-
-    return chainData
+    return {'calls': calls, 'puts':puts}
 
 def plot_IVskew(ticker, expiration):
     """
     Plot the Implied Volatility skew chart, weighted by volume and open interest.
     The aim is visualize Implied Volatility accross different strikes for both calls and puts.
     """
-    chainData = get_options_chain(ticker, expiration)
+    chain_data = get_options_chain(ticker, expiration)
+    current_price = yf.Ticker(ticker).info['regularMarketPrice'] # Live price
 
     plt.figure(figsize=(14,7))
 
-    # Create a volatility smile or skew plot for puts
-    sns.lineplot(x='Strike', y='Implied Volatility', data=chainData['puts'], marker='o', color='blue', label='Puts')
-
-    # Create a volatility smile or skew plot for calls
-    sns.lineplot(x='Strike', y='Implied Volatility', data=chainData['calls'], marker='s', color='red', label='Calls')
-
-    # Add a vertical line of the current stock price
-    plt.axvline(x=si.get_live_price(ticker), linestyle='--', color='green', label='Current Price')
+    sns.lineplot(x='strike', y='impliedVolatility', data=chain_data['puts'], marker='o', color='blue', label='Puts')
+    sns.lineplot(x='strike', y='impliedVolatility', data=chain_data['calls'], marker='s', color='red', label='Calls')
+    plt.axvline(x=current_price, linestyle='--', color='green', label='Current Price')  
 
     plt.title(f'Implied Volatility Skew by Strike Prices - Expiration: {expiration}')
     plt.xlabel('Strike Prices')
     plt.ylabel('Implied Volatility')
-    plt.legend() # Add legend to differentiate vetween puts and calls
+    plt.legend()
     plt.grid(True)
     plt.show()
 
@@ -61,16 +51,18 @@ def calculate_weighted_cpivs(ticker, expiration):
     float: CPIV in the magnitude of implied volatility
     """
 
-    chainData = get_options_chain(ticker, expiration)
-
-    # Calculate the weighted average implied volatilities
-    weighted_avg_iv_call = (chainData['calls']['Implied Volatility'] * (chainData['calls']['Open Interest'] + chainData['calls']['Volume'])).sum() / (chainData['calls']['Open Interest'] + chainData['calls']['Volume']).sum()
-    weighted_avg_iv_put = (chainData['puts']['Implied Volatility'] * (chainData['puts']['Open Interest'] + chainData['puts']['Volume'])).sum() / (chainData['puts']['Open Interest'] + chainData['puts']['Volume']).sum()
-
-    # Calculate CPIV as the difference in weighted average implied volatilities
+    chain_data = get_options_chain(ticker, expiration)
+    
+    # Weighted average IV for calls
+    calls = chain_data['calls']
+    weighted_avg_iv_call = (calls['impliedVolatility'] * (calls['openInterest'] + calls['volume'])).sum() / (calls['openInterest'] + calls['volume']).sum()
+    
+    # Weighted average IV for puts
+    puts = chain_data['puts']
+    weighted_avg_iv_put = (puts['impliedVolatility'] * (puts['openInterest'] + puts['volume'])).sum() / (puts['openInterest'] + puts['volume']).sum()
+    
+    # CPIV
     weighted_cpiv = weighted_avg_iv_call - weighted_avg_iv_put
-
-    # print(f'Weighted Call-Put Implied Volatility Spread (CPIV): {weighted_cpiv}')
     return weighted_cpiv
 
 def get_and_sort_cpivs_for_tickers(tickers):
@@ -81,16 +73,12 @@ def get_and_sort_cpivs_for_tickers(tickers):
 
     for ticker in tickers:
         try:
-            expirations = op.get_expiration_dates(ticker)
+            ticker_obj = yf.Ticker(ticker)
+            expirations = ticker_obj.options # list of expirations dates
             for expiration in expirations:
-                # Get options chain for the current ticker and expiration date
-                chain_data = get_options_chain(ticker, expiration)
-
-                # Calculate CPIV for the current options chain
-                cpiv = calculate_weighted_cpivs(chain_data)
-
-                # Append ticker, expiration, and CPIV to the list
+                cpiv = calculate_weighted_cpivs(ticker, expiration)
                 cpiv_data.append({'Ticker': ticker, 'Expiration': expiration, 'CPIV': cpiv})
+
         except Exception as e:
             print(f"Error processing {ticker}: {e}")
 
@@ -111,12 +99,8 @@ def get_CPIVbyExpiration(tickers, expiration):
 
     for ticker in tickers:
         try:
-            # Get options chain for the current ticker and expiration date
-            chain_data = get_options_chain(ticker, expiration)
-
             # Calculate CPIV for the current options chain
             cpiv = calculate_weighted_cpivs(ticker, expiration)
-
             # Append ticker, expiration, and CPIV to the list
             cpiv_data.append({'Ticker': ticker, 'Expiration': expiration, 'CPIV': cpiv})
         except Exception as e:
@@ -145,7 +129,7 @@ def vix_dynamic_allocation(balance=5000):
     try:
         # Fetch VIX data using history for the latest close (more reliable than info)
         vix_ticker = yf.Ticker('^VIX')
-        vix_data = vix_ticker.history(period='1d', interval='1d')['Close']
+        vix_data = vix_ticker.history(period='1d', interval='1d')
         if vix_data.empty:
             raise ValueError("No VIX data returned")
         current_vix = vix_data['Close'].iloc[-1].round(2)
@@ -169,34 +153,82 @@ def vix_dynamic_allocation(balance=5000):
     print(f"VIX: {current_vix}, Allocation: {allocation_percentage*100}% of ${balance} = ${allocation_value:.2f}")
     return allocation_value
 
-def get_prices(tickers):
+def get_prices(tickers, period='1y'):
     """
-    Get a DataFrame of prices from a list of tickers (Adjusted Close)
+    Fetch a DataFrame of adjusted close prices for a list of tickers over a given period.
+    
+    Parameters:
+    - tickers (list): List of ticker symbols (e.g., ['AAPL', 'MSFT']).
+    - period (str): Period for data (e.g., '30d', '1mo', '1y', 'max'). Default is '1y'.
+    
+    Returns:
+    - pd.DataFrame: Adjusted close prices.
     """
-    prices = pd.DataFrame()
-    for ticker in tickers:
-        prices[ticker] = si.get_data(ticker)['adjclose']
+    # Use yf.download for efficiency with multiple tickers
+    prices = yf.download(tickers, period=period, interval='1d')['Close']
+    if isinstance(prices, pd.Series):  # Handle single ticker case
+        prices = prices.to_frame(name=tickers[0])
     return prices
 
-def corr_2assets(ticker1, ticker2):
+def corr_2assets(ticker1, ticker2, period='1y'):
     """
-    Get the correlation between two assets
+    Calculate the correlation between two assets over a given period.
+    
+    Parameters:
+    - ticker1 (str): First ticker symbol (e.g., 'AAPL').
+    - ticker2 (str): Second ticker symbol (e.g., 'MSFT').
+    - period (str): Period for data (e.g., '30d', '1mo', '1y', 'max'). Default is '30d'.
+    
+    Returns:
+    - float: Correlation coefficient.
     """
-    asset1 = si.get_data(ticker1)
-    asset2 = si.get_data(ticker2)
-    correlation = asset1.corr(asset2)
+    prices = get_prices([ticker1, ticker2], period=period)
+    returns = prices.pct_change().dropna()
+    correlation = returns[ticker1].corr(returns[ticker2])
     return correlation
 
-def show_corr_matrix(tickers):
+def show_corr_matrix(tickers, period='1y'):
     """
-    Show a correlation between a set of returns
+    Display a correlation matrix for a set of assets over a given period.
+    
+    Parameters:
+    - tickers (list): List of ticker symbols (e.g., ['AAPL', 'MSFT', 'GOOGL']).
+    - period (str): Period for data (e.g., '30d', '1mo', '1y', 'max'). Default is '30d'.
+    
+    Returns:
+    - Styled DataFrame: Correlation matrix with gradient.
     """
-    prices = get_prices(tickers)
-    if isinstance(prices, pd.Series):
-        print('Returns is an array and not a set of assets. Provide a set of returns')
-
-    corr_matrix = prices.select_dtypes(exclude='object').corr().style.background_gradient(cmap='coolwarm')
+    prices = get_prices(tickers, period=period)
+    returns = prices.pct_change().dropna()
+    if len(tickers) < 2:
+        print("Provide at least two tickers for correlation.")
+        return None
+    corr_matrix = returns.corr().style.background_gradient(cmap='coolwarm')
     return corr_matrix
+
+def plot_corr_over_time(ticker1, ticker2, period='1y', window=30):
+    """
+    Plot the rolling correlation between two assets over time.
+    
+    Parameters:
+    - ticker1 (str): First ticker symbol (e.g., 'AAPL').
+    - ticker2 (str): Second ticker symbol (e.g., 'MSFT').
+    - period (str): Period for data (e.g., '30d', '1mo', '1y', 'max'). Default is '30d'.
+    - window (int): Rolling window size in days (default=30).
+    """
+    prices = yf.download([ticker1, ticker2], period=period, interval='1d')['Close']
+    returns = prices.pct_change().dropna()
+    rolling_corr = returns[ticker1].rolling(window=window).corr(returns[ticker2])
+    
+    plt.figure(figsize=(12, 6))
+    rolling_corr.plot()
+    plt.title(f'Rolling {window}-Day Correlation Between {ticker1} and {ticker2}')
+    plt.xlabel('Date')
+    plt.ylabel('Correlation')
+    plt.grid(True)
+    plt.axhline(0, color='red', linestyle='--', linewidth=0.5)
+    plt.show()
+
 
 def kelly_criterion_allocation(r=0.05, dte=45, pop=0.7):
     """
