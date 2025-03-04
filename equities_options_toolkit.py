@@ -145,7 +145,7 @@ def vix_dynamic_allocation(balance=5000):
     try:
         # Fetch VIX data using history for the latest close (more reliable than info)
         vix_ticker = yf.Ticker('^VIX')
-        vix_data = vix_ticker.history(period='1d', interval='1d')
+        vix_data = vix_ticker.history(period='1d', interval='1d')['Close']
         if vix_data.empty:
             raise ValueError("No VIX data returned")
         current_vix = vix_data['Close'].iloc[-1].round(2)
